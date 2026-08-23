@@ -92,7 +92,31 @@ Frontend: 12 pages, `DashboardLayout`, `OrderCard`, `StatusBadge`, `WhatsAppSimu
   regression suite at `/app/backend/tests/backend_test.py`.
 - **Fixed during build**: WhatsApp session stuck on `connecting` (now an atomic write);
   AI infrastructure failure no longer permanently locks a chat into human handoff;
-  Roman Urdu detection expanded to common verbs (`dikhayen`, `mangwana`, `batao`, …).
+  Roman Urdu detection expanded to common verbs (`dikhayen`, `mangwana`, `batao`, …) with an
+  `AMBIGUOUS_HINTS` guard so English phrases like "place my order" stay English.
+
+## Implemented — 2026-06 (opening hours & closed-hours bot gate)
+
+Requested by the user: editable restaurant timings in Settings, and the bot must not operate when closed.
+
+- **Settings → Hours** is now a first-class editor: all 7 days with 24-hour open/close inputs and a
+  per-day Open/Closed switch, a live **"Open right now" / "Closed right now — opens HH:MM"** banner,
+  and an inline note explaining exactly what happens outside those hours. Values persist and the
+  banner refreshes on save.
+- **Closed-hours gate** in `processor.handle_incoming()`: outside opening hours the pipeline returns
+  early with `closed: true` **before ever reaching the LLM**. The customer gets a localised
+  (English / Urdu / Roman Urdu) "we're closed, we open at HH:MM" reply, nothing enters the cart, no
+  order can be created, and no Gemini spend occurs. Conversation state resets to `GREETING`.
+- **Pre-order override**: Settings → Operations → *Accept pre-orders while closed* re-enables the bot
+  while closed, for restaurants that want to queue orders overnight.
+- **`is_open()` rewritten** to handle windows that run past midnight (e.g. 18:00 → 02:00, including
+  rollover from the previous day) and to report the genuine *next* opening day rather than the first
+  entry in the list. `create_order()` keeps its independent server-side guard.
+- **Simulator header** shows `closed · opens HH:MM`, sourced from the same `is_open()` call as the
+  gate, so the UI can never disagree with the bot's behaviour.
+- **Verified**: 54/54 backend tests (30 regression + 24 new closed-hours, including 9 `is_open()` unit
+  cases) plus frontend Playwright checks and mobile 390×844 with zero horizontal overflow —
+  `/app/test_reports/iteration_2.json`. Suite: `/app/backend/tests/test_closed_hours.py`.
 
 ## Backlog
 

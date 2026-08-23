@@ -96,6 +96,17 @@ def status_text(order: dict, restaurant: dict, status: str, lang: str, reason: s
     return None
 
 
+def closed_text(restaurant: dict, opens_at: str, lang: str) -> str:
+    name = restaurant.get("name", "the restaurant")
+    when = opens_at or "our next opening time"
+    if lang == "ur":
+        return f"معذرت، ابھی {name} بند ہے۔ ہم {when} پر کھلتے ہیں۔ براہِ کرم اُس وقت پیغام بھیجیں، ہم آپ کا آرڈر خوشی سے لیں گے۔"
+    if lang == "roman_ur":
+        return f"Maazrat, abhi {name} closed hai. Hamara opening time {when} hai. Us waqt message karein, hum aap ka order khushi se lein ge."
+    return f"Sorry, {name} is currently closed. We open at {when}. Please message us then and we'll be happy to take your order."
+
+
+
 class NotificationService:
     def __init__(self) -> None:
         self.channels = {"whatsapp": get_whatsapp_provider()}

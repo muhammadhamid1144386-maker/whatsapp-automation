@@ -20,6 +20,7 @@ export default function Settings() {
   const { refresh } = useAuth();
   const [restaurant, setRestaurant] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [openState, setOpenState] = useState({ open_now: true, opens_at: "" });
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -27,6 +28,7 @@ export default function Settings() {
       const { data } = await api.get("/restaurant");
       setRestaurant(data.restaurant);
       setSettings(data.settings);
+      setOpenState({ open_now: data.open_now, opens_at: data.opens_at });
     } catch (e) {
       toast.error(errText(e));
     }
@@ -77,6 +79,7 @@ export default function Settings() {
         ai_active: settings.ai_active,
       });
       toast.success("Operations saved");
+      load();
     } catch (e) {
       toast.error(errText(e));
     } finally {
@@ -204,6 +207,26 @@ export default function Settings() {
 
         <TabsContent value="hours" className="mt-6">
           <div className="card-surface space-y-4 p-6">
+            <div
+              data-testid="hours-live-status"
+              className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm ${
+                openState.open_now
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                  : "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+              }`}
+            >
+              <span className={`h-2.5 w-2.5 rounded-full ${openState.open_now ? "bg-emerald-500" : "bg-amber-500"}`} />
+              <span className="font-semibold">
+                {openState.open_now ? "Open right now" : `Closed right now — opens ${openState.opens_at || "later"}`}
+              </span>
+              <span className="text-xs opacity-80">Times are Pakistan Standard Time (PKT)</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Outside these hours the AI assistant stops taking orders — it replies with your opening time
+              instead. To keep it accepting orders while closed, turn on{" "}
+              <b>Accept pre-orders while closed</b> in the Operations tab. Use 24-hour times, and a closing
+              time earlier than the opening time (e.g. 18:00 → 02:00) is treated as running past midnight.
+            </p>
             {(settings.opening_hours || []).map((hour, index) => (
               <div key={hour.day} className="flex flex-wrap items-center gap-3" data-testid={`hours-row-${hour.day}`}>
                 <span className="w-24 text-sm font-medium">{DAY_LABEL[hour.day] || DAYS[hour.day]}</span>

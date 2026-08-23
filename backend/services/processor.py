@@ -11,6 +11,7 @@ from core.db import db, oid
 from services import sheets
 from services.agent import AgentContext, respond
 from services.ai import detect_language
+from services.notifications import closed_text
 from services.orders import get_settings, is_open
 from services.realtime import broker, customer_channel, dashboard_channel
 from services.whatsapp import get_whatsapp_provider
@@ -59,6 +60,17 @@ async def save_message(restaurant_id: str, conversation_id: str, sender: str, bo
     return doc
 
 
+async def _deliver(restaurant_id: str, conversation_id: str, phone: str, replies: list[str]) -> None:
+    """Persists outbound assistant messages and pushes them to dashboard + customer streams."""
+    for reply in replies:
+        await db.messages.insert_one(
+            {"conversation_id": conversation_id, "restaurant_id": restaurant_id, "sender": "ai",
+             "body": reply, "message_type": "text", "external_id": None, "created_at": datetime.now(timezone.utc)}
+        )
+        await broker.publish(dashboard_channel(restaurant_id), "NEW_MESSAGE", {"conversation_id": conversation_id, "sender": "ai", "body": reply})
+        await broker.publish(customer_channel(restaurant_id, phone), "WHATSAPP_MESSAGE", {"body": reply, "sender": "ai"})
+
+
 async def handle_incoming(restaurant: dict, phone: str, text: str, external_id: Optional[str] = None) -> dict:
     """Processes one inbound customer message. Safe to call twice with the same external_id."""
     restaurant_id = str(restaurant["_id"])
@@ -92,18 +104,24 @@ async def handle_incoming(restaurant: dict, phone: str, text: str, external_id: 
         return {"duplicate": False, "replies": [], "handoff": True}
 
     settings = await get_settings(restaurant_id)
+
+    # Closed-hours gate: the AI assistant does not operate outside opening hours
+    # unless the owner explicitly allows pre-orders.
+    open_now, opens_at = is_open(settings)
+    if not open_now and not settings.get("allow_orders_when_closed", False):
+        reply = closed_text(restaurant, opens_at, language)
+        await _deliver(restaurant_id, conversation_id, phone, [reply])
+        await db.conversations.update_one({"_id": conversation["_id"]}, {"$set": {"state": "GREETING"}})
+        return {
+            "duplicate": False, "replies": [reply], "closed": True, "opens_at": opens_at,
+            "state": "GREETING", "conversation_id": conversation_id, "language": language,
+        }
+
     customer = await db.customers.find_one({"restaurant_id": restaurant_id, "phone": phone})
     ctx = AgentContext(restaurant=restaurant, settings=settings, conversation=conversation, customer=customer, language=language)
 
     replies = await respond(ctx, text)
-    provider = get_whatsapp_provider()
-    for reply in replies:
-        await db.messages.insert_one(
-            {"conversation_id": conversation_id, "restaurant_id": restaurant_id, "sender": "ai",
-             "body": reply, "message_type": "text", "external_id": None, "created_at": datetime.now(timezone.utc)}
-        )
-        await broker.publish(dashboard_channel(restaurant_id), "NEW_MESSAGE", {"conversation_id": conversation_id, "sender": "ai", "body": reply})
-        await broker.publish(customer_channel(restaurant_id, phone), "WHATSAPP_MESSAGE", {"body": reply, "sender": "ai"})
+    await _deliver(restaurant_id, conversation_id, phone, replies)
 
     fresh = await db.conversations.find_one({"_id": conversation["_id"]})
     return {"duplicate": False, "replies": replies, "state": fresh.get("state"), "conversation_id": conversation_id, "language": language}

@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 2 focused on the new closed-hours behaviour (bot gate, past-midnight is_open logic, localised closed messages, pre-order override, Hours-tab editor with live status banner) plus regression. Wrote 24 new pytest cases in /app/backend/tests/test_closed_hours.py covering: (a) 9 direct unit calls to services.orders.is_open() with injected UTC datetimes verifying overnight/prev-day rollover and next-opening lookup; (b) language detection regressions ('menu dikhayen'->roman_ur, '1 zinger burger aur fries'->roman_ur, 'Yes, place my order'->en, 'Do you deliver to F-7?'->en, urdu-script and plain English); (c) /api/chat/pizza-palace public endpoint exposes open_now/opens_at; (d) chat gate blocks with closed:true+opens_at+single canned reply and does NOT create orders even after '1 zinger burger'; (e) localised closed messages en/roman_ur/ur; (f) preorder toggle lets bot work while closed and blocks again when off; (g) bot resumes when hours restored. All 24 pass. Also re-ran the existing 30-test regression suite -> 30/30 pass. Frontend Playwright: logged in as owner, opened /settings->Hours, verified live status banner ('Open right now'), all 7 day rows with Monday first (DAY_LABEL[0]==Monday), edited Monday to 12:30 and confirmed persistence after full reload, restored, confirmed /whatsapp simulator header shows 'online · AI assistant' when open and 'Closed right now — opens later' banner when all days closed. Mobile 390x844 Hours tab has zero horizontal overflow (scrollWidth==clientWidth==390) and banner wraps cleanly. Restored Pizza Palace to open 11:00-23:59 all 7 days with allow_orders_when_closed=false at the end.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "services.orders._next_opening / is_open", "issue": "When ALL 7 days are marked closed, opens_at returns '' (empty string) and the frontend banner + closed-message fall back to 'later' / 'our next opening time'. Technically correct per spec (test_all_days_closed asserts this) but could be friendlier ('closed indefinitely' etc.). Not a bug — flagging for polish."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_closed_hours.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/closed_hours_results.xml",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "services/orders.is_open() correctly rolls previous-day past-midnight windows over (verified 18:00-02:00 open at 01:00 PKT of the following weekday).",
+    "services/processor.handle_incoming() returns EARLY with closed=true before dispatching to the LLM — this correctly prevents any Gemini spend during closed hours and guarantees no cart/order side effects. The gate also resets conversation.state to GREETING so a customer messaging after hours doesn't see stale ORDER_CONFIRMATION-style prompts when the shop reopens.",
+    "services/notifications.closed_text() branches on lang in {'ur','roman_ur',<else en>} — matches detect_language() output values exactly.",
+    "AMBIGUOUS_HINTS = {'order','please','do'} correctly prevents 'Yes, place my order' and 'Do you deliver to F-7?' from being flipped to roman_ur while 'menu dikhayen' and '1 zinger burger aur fries' still detect as roman_ur (verified in 6 language-detection unit tests).",
+    "Settings.jsx Hours tab: DAY_LABEL[0]=Monday matches Python weekday() index; the map iterates settings.opening_hours which is stored [day 0..6] so labels align. Verified visually.",
+    "WhatsAppSimulator.jsx header priority is correct — closed check runs before channel_status, so a connected+closed restaurant correctly shows 'closed · opens HH:MM' rather than 'online'.",
+    "chat/{slug}.get returns open_now/opens_at from is_open(settings) — same source of truth as the gate in handle_incoming, so header state can never disagree with what the bot will do."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_closed_hours.py"
+  ],
+  "success_rate": {"backend": "100% (24/24 new closed-hours + 30/30 regression = 54/54)", "frontend": "100% (Hours banner, 7-day editor, persistence, day labels, simulator header open+closed states, mobile no-overflow)"},
+  "test_credentials": "owner@pizzapalace.pk / Pizza123! (Pizza Palace owner); tenant2@test.pk / Test1234! (Burger Hub, unchanged)",
+  "seed_data_creation": "None. The closed-hours tests toggle settings back to open 11:00-23:59 with allow_orders_when_closed=false in a module-scoped teardown fixture. Verified via API at end of run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression suite is now split across TWO pytest files run under the same pytest.ini (which uses xdist -n 2 --dist loadscope): /app/backend/tests/backend_test.py (30 tests, ~55-90s) and /app/backend/tests/test_closed_hours.py (24 tests, ~30s). The closed_hours file declares a module-level pytestmark=xdist_group('closed_hours_shared_settings') so all its tests land on the same xdist worker — this is REQUIRED because they all mutate Pizza Palace opening_hours; without the group they race and fail intermittently. is_open() is imported directly via sys.path.insert(0,'/app/backend') so the 9 unit cases don't need HTTP. If you need to add more closed-hours cases, put them in a class inside test_closed_hours.py so they inherit the xdist group and use the module-scoped _restore_hours_at_end fixture instead of writing your own teardown.",
+  "rca_of_the_issue": "N/A — no bugs found. During iteration development I initially saw 2/24 failures with the default `-n 2 --dist loadscope` xdist config because TestClosedHoursGate and TestPreorderOverride landed on different workers and simultaneously PUT conflicting opening_hours/allow_orders_when_closed values on the same tenant. Fix (already committed to test file): added `pytestmark = pytest.mark.xdist_group('closed_hours_shared_settings')` at module level so xdist keeps them in a single worker. After the fix: 24/24 in parallel and 24/24 serial. Not a product bug — pure test-parallelisation issue."
+}

@@ -102,9 +102,13 @@ export const WhatsAppSimulator = ({ slug = "pizza-palace", phone = "03001234567"
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{info?.name || "Restaurant"}</p>
           <p className="flex items-center gap-1 text-[11px] text-emerald-200">
-            <Wifi className="h-3 w-3" />
-            {info?.channel_status === "connected" ? "online · AI assistant" : "channel not connected"}
-          </p>
+          <Wifi className="h-3 w-3" />
+          {info?.open_now === false
+            ? `closed · opens ${info?.opens_at || "later"}`
+            : info?.channel_status === "connected"
+              ? "online · AI assistant"
+              : "channel not connected"}
+        </p>
         </div>
         <button
           type="button"

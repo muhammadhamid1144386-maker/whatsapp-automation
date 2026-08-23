@@ -276,7 +276,7 @@ curl -s -X POST "$API/api/chat/pizza-palace/message" -H 'Content-Type: applicati
 | --- | --- |
 | Dashboard does not update live | SSE needs the token in the URL; log out and back in. Check `/api/events/stream?token=…`. |
 | AI replies with the fallback message | Gemini call failed. Check `tail -n 100 /var/log/supervisor/backend.err.log` and `EMERGENT_LLM_KEY` balance. The conversation is flipped to human handoff — toggle AI back on in **Conversations**. |
-| "Restaurant is currently closed" | Settings → Hours, or enable pre-orders in Settings → Operations. |
+| "Restaurant is currently closed" | The bot only takes orders inside Settings → Hours. Either fix the hours, or enable *Accept pre-orders while closed* in Settings → Operations. A closing time earlier than the opening time (18:00 → 02:00) is treated as running past midnight. |
 | "Minimum order is PKR 500" | Add more items, or lower the minimum in Settings → Operations. |
 | Sheets jobs stuck on `pending` | Expected until `GOOGLE_SERVICE_ACCOUNT_JSON` is set. See section 9. |
 | Duplicate WhatsApp messages | Handled — `processed_messages.external_id` is unique, and order creation is idempotent per cart. |

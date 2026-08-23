@@ -1,7 +1,7 @@
 """Order pricing, creation and lifecycle. All money is computed here, never by the LLM."""
 
 import logging
-from datetime import datetime, time, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import HTTPException
@@ -41,28 +41,55 @@ def eta_for(settings: dict, order_type: str) -> tuple[int, int]:
     return prep_min, prep_max
 
 
+def _parse_hhmm(value, default: int) -> int:
+    try:
+        hour, minute = [int(part) for part in str(value).split(":")[:2]]
+        return hour * 60 + minute
+    except (ValueError, AttributeError):
+        return default
+
+
+def _next_opening(hours: list[dict], weekday: int) -> str:
+    for step in range(1, 8):
+        day = (weekday + step) % 7
+        entry = next((h for h in hours if int(h.get("day", 0)) == day), None)
+        if entry and not entry.get("closed"):
+            return entry.get("open", "11:00")
+    return ""
+
+
 def is_open(settings: dict, now: Optional[datetime] = None) -> tuple[bool, str]:
+    """Returns (open_now, next_opening_time). Handles windows that run past midnight."""
     hours = settings.get("opening_hours") or []
     if not hours:
         return True, ""
     now = now or datetime.now(timezone.utc)
-    # Asia/Karachi is UTC+5 with no DST.
-    local_hour = (now.hour + 5) % 24
-    day_shift = 1 if now.hour + 5 >= 24 else 0
-    weekday = (now.weekday() + day_shift) % 7
+    local = now + timedelta(hours=5)  # Asia/Karachi is UTC+5 with no DST
+    weekday = local.weekday()
+    minutes_now = local.hour * 60 + local.minute
+
+    yesterday = next((h for h in hours if int(h.get("day", 0)) == (weekday - 1) % 7), None)
+    if yesterday and not yesterday.get("closed"):
+        opens = _parse_hhmm(yesterday.get("open"), 660)
+        closes = _parse_hhmm(yesterday.get("close"), 1410)
+        if closes <= opens and minutes_now < closes:
+            return True, ""
+
     today = next((h for h in hours if int(h.get("day", 0)) == weekday), None)
     if not today or today.get("closed"):
-        first = next((h for h in hours if not h.get("closed")), None)
-        return False, (first or {}).get("open", "11:00")
-    current = time(local_hour, now.minute)
-    try:
-        open_h, open_m = [int(x) for x in str(today.get("open", "11:00")).split(":")[:2]]
-        close_h, close_m = [int(x) for x in str(today.get("close", "23:30")).split(":")[:2]]
-    except ValueError:
+        return False, _next_opening(hours, weekday)
+
+    opens = _parse_hhmm(today.get("open"), 660)
+    closes = _parse_hhmm(today.get("close"), 1410)
+    if closes <= opens:
+        if minutes_now >= opens:
+            return True, ""
+    elif opens <= minutes_now <= closes:
         return True, ""
-    if time(open_h, open_m) <= current <= time(close_h, close_m):
-        return True, ""
-    return False, today.get("open", "11:00")
+
+    if minutes_now < opens:
+        return False, today.get("open", "11:00")
+    return False, _next_opening(hours, weekday)
 
 
 async def calculate_totals(restaurant_id: str, items: list[dict], order_type: Optional[str]) -> dict:
