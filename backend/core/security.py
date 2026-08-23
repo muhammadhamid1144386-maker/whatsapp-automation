@@ -83,11 +83,32 @@ async def get_current_user(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="User not found")
     user["id"] = str(user.pop("_id"))
     user.pop("password_hash", None)
+    # Re-derive privilege from the source of truth: a client blocked mid-session loses access now.
+    if not user.get("platform_role") and user.get("restaurant_id"):
+        sub = await db.subscriptions.find_one({"restaurant_id": user["restaurant_id"]}, {"status": 1})
+        if sub and sub.get("status") == "blocked":
+            raise HTTPException(
+                status_code=403,
+                detail="This account is suspended because the subscription payment is pending. "
+                       "Please contact your account manager to reactivate it.",
+            )
+    return user
+
+
+async def require_platform_admin(user: dict = Depends(get_current_user)) -> dict:
+    """Platform scope. Never falls back to the tenant scope."""
+    if user.get("platform_role") != "platform_admin":
+        raise HTTPException(status_code=403, detail="Platform administrator access required")
     return user
 
 
 async def tenant(user: dict = Depends(get_current_user)) -> str:
     """Returns the restaurant_id the authenticated user is allowed to touch."""
+    if user.get("platform_role") == "platform_admin" and not user.get("restaurant_id"):
+        raise HTTPException(
+            status_code=403,
+            detail="Platform administrators manage clients at /admin and have no restaurant dashboard of their own.",
+        )
     restaurant_id = user.get("restaurant_id")
     if not restaurant_id:
         raise HTTPException(status_code=403, detail="User is not linked to a restaurant")

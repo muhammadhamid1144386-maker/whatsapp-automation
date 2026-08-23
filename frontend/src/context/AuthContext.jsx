@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
       const { data } = await api.post("/auth/login", { email, password });
       setToken(data.access_token);
       setUser(data);
-      return { ok: true };
+      return { ok: true, platform_role: data.platform_role };
     } catch (e) {
       return { ok: false, error: errText(e) };
     }

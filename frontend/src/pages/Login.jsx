@@ -14,7 +14,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={user.platform_role === "platform_admin" ? "/admin" : "/dashboard"} replace />;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -22,7 +22,7 @@ export default function Login() {
     setError("");
     const result = await login(email, password);
     setBusy(false);
-    if (result.ok) navigate("/dashboard");
+    if (result.ok) navigate(result.platform_role === "platform_admin" ? "/admin" : "/dashboard");
     else setError(result.error);
   };
 

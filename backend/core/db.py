@@ -61,6 +61,11 @@ async def ensure_indexes() -> None:
     await db.google_sync_jobs.create_index([("restaurant_id", 1), ("sync_status", 1)])
     await db.carts.create_index("conversation_id", unique=True)
     await db.whatsapp_sessions.create_index("restaurant_id", unique=True)
+    await db.subscriptions.create_index("restaurant_id", unique=True)
+    await db.subscription_payments.create_index([("restaurant_id", 1), ("created_at", -1)])
+    await db.client_credentials.create_index("restaurant_id", unique=True)
+    await db.admin_alerts.create_index([("read", 1), ("created_at", -1)])
+    await db.cron_runs.create_index("run_id", unique=True)
 
 
 async def next_sequence(name: str, start: int = 1000) -> int:

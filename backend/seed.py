@@ -56,6 +56,32 @@ UPSELL_FOR = {"Zinger Burger", "Chicken Cheese Burger", "Beef Tikka Burger", "La
               "Chicken Tikka Pizza (Medium)", "Pepperoni Pizza (Small)", "Chicken Biryani"}
 
 
+async def seed_platform_admin() -> dict:
+    """Idempotent platform-owner account. Separate role scope from restaurant owners."""
+    email = os.environ.get("ADMIN_EMAIL", "admin@airestaurant.pk").lower()
+    password = os.environ.get("ADMIN_PASSWORD", "Admin@123!")
+    now = datetime.now(timezone.utc)
+    user = await db.users.find_one({"email": email})
+    if not user:
+        await db.users.insert_one(
+            {"email": email, "password_hash": hash_password(password), "name": "Platform Admin",
+             "role": "admin", "platform_role": "platform_admin", "restaurant_id": None, "created_at": now}
+        )
+    else:
+        updates = {}
+        if not verify_password(password, user["password_hash"]):
+            updates["password_hash"] = hash_password(password)
+        if user.get("platform_role") != "platform_admin":
+            updates["platform_role"] = "platform_admin"
+        if updates:
+            await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
+    # Tenant owners must never carry a platform role.
+    await db.users.update_many(
+        {"email": {"$ne": email}, "platform_role": {"$exists": False}}, {"$set": {"platform_role": None}}
+    )
+    return {"admin_email": email}
+
+
 async def seed_demo() -> dict:
     if os.environ.get("DEMO_MODE", "true").lower() != "true":
         return {"seeded": False}
@@ -170,4 +196,7 @@ async def seed_demo() -> dict:
             await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
 
     logger.info("demo seed ready: restaurant=%s owner=%s", restaurant_id, email)
+    from services import subscriptions
+
+    await subscriptions.get_or_create(restaurant_id, amount=5000, period="monthly")
     return {"seeded": True, "restaurant_id": restaurant_id, "owner_email": email}

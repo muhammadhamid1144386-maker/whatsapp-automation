@@ -13,17 +13,37 @@ import GoogleSheets from "@/pages/GoogleSheets";
 import Analytics from "@/pages/Analytics";
 import SettingsPage from "@/pages/Settings";
 import ChatDemo from "@/pages/ChatDemo";
+import AdminOverview from "@/pages/AdminOverview";
+import AdminClients from "@/pages/AdminClients";
+import AdminClientDetail from "@/pages/AdminClientDetail";
+
+const Loader = () => (
+  <div className="grid min-h-screen place-items-center bg-background">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
 
 const Protected = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading)
-    return (
-      <div className="grid min-h-screen place-items-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+  if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.platform_role === "platform_admin") return <Navigate to="/admin" replace />;
   return children;
+};
+
+const PlatformProtected = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.platform_role !== "platform_admin") return <Navigate to="/dashboard" replace />;
+  return children;
+};
+
+const Home = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={user.platform_role === "platform_admin" ? "/admin" : "/dashboard"} replace />;
 };
 
 function App() {
@@ -43,8 +63,11 @@ function App() {
           <Route path="/google-sheets" element={<Protected><GoogleSheets /></Protected>} />
           <Route path="/analytics" element={<Protected><Analytics /></Protected>} />
           <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/admin" element={<PlatformProtected><AdminOverview /></PlatformProtected>} />
+          <Route path="/admin/clients" element={<PlatformProtected><AdminClients /></PlatformProtected>} />
+          <Route path="/admin/clients/:id" element={<PlatformProtected><AdminClientDetail /></PlatformProtected>} />
+          <Route path="/" element={<Home />} />
+          <Route path="*" element={<Home />} />
         </Routes>
         <Toaster position="top-right" richColors closeButton />
       </AuthProvider>

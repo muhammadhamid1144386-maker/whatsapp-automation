@@ -1,0 +1,9 @@
+crons:
+  - name: subscription-check
+    description: "Daily subscription sweep: sends 7/3/1-day expiry reminders, applies grace, auto-blocks unpaid clients"
+    cron: "0 4 * * *"
+    timezone: "Asia/Karachi"
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    endpoint: "{{BASE_URL}}/api/cron/subscriptions"
+    method: POST
+    enabled: true

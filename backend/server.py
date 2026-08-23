@@ -12,8 +12,8 @@ from fastapi import FastAPI  # noqa: E402
 from starlette.middleware.cors import CORSMiddleware  # noqa: E402
 
 from core.db import client, ensure_indexes  # noqa: E402
-from routers import auth, channels, chat, events, menu, orders, people, restaurant  # noqa: E402
-from seed import seed_demo  # noqa: E402
+from routers import admin, auth, channels, chat, cron, events, menu, orders, people, restaurant  # noqa: E402
+from seed import seed_demo, seed_platform_admin  # noqa: E402
 from services.sheets import sync_worker  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -29,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for module in (auth, restaurant, menu, orders, people, channels, events, chat):
+for module in (auth, restaurant, menu, orders, people, channels, events, chat, admin, cron):
     app.include_router(module.router)
 
 _background: list[asyncio.Task] = []
@@ -57,8 +57,9 @@ async def health():
 @app.on_event("startup")
 async def startup() -> None:
     await ensure_indexes()
+    admin_info = await seed_platform_admin()
     info = await seed_demo()
-    logger.info("startup complete %s", info)
+    logger.info("startup complete %s %s", info, admin_info)
     _background.append(asyncio.create_task(sync_worker()))
 
 

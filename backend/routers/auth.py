@@ -30,12 +30,19 @@ def _set_cookies(response: Response, access: str, refresh: str) -> None:
 
 async def _session_payload(user: dict) -> dict:
     restaurant = await db.restaurants.find_one({"_id": oid(user["restaurant_id"])}) if user.get("restaurant_id") else None
+    subscription = None
+    if restaurant:
+        sub = await db.subscriptions.find_one({"restaurant_id": str(restaurant["_id"])})
+        if sub:
+            subscription = {"status": sub.get("status"), "current_period_end": sub.get("current_period_end")}
     return {
         "id": str(user.get("_id") or user.get("id")),
         "email": user["email"],
         "name": user["name"],
         "role": user.get("role", "owner"),
+        "platform_role": user.get("platform_role"),
         "restaurant_id": user.get("restaurant_id"),
+        "subscription": subscription,
         "restaurant": {
             "id": str(restaurant["_id"]),
             "name": restaurant["name"],
@@ -58,6 +65,16 @@ async def login(body: LoginBody, request: Request, response: Response):
     if not user or not verify_password(body.password, user["password_hash"]):
         await record_failed_login(identifier)
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not user.get("platform_role") and user.get("restaurant_id"):
+        sub = await db.subscriptions.find_one({"restaurant_id": user["restaurant_id"]}, {"status": 1})
+        if sub and sub.get("status") == "blocked":
+            await clear_login_attempts(identifier)
+            raise HTTPException(
+                status_code=403,
+                detail="Your subscription is on hold because payment is pending. "
+                       "Please complete your payment to restore access, or contact your account manager.",
+            )
 
     await clear_login_attempts(identifier)
     user_id = str(user["_id"])
