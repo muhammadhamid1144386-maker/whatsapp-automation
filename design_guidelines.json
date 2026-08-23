@@ -1,0 +1,118 @@
+{
+  "theme": "light_preferred_with_dark_toggle",
+  "typography": {
+    "headings": {
+      "font_family": "Cabinet Grotesk",
+      "weights": ["500", "700", "900"],
+      "classes": "font-sans tracking-tight",
+      "import_url": "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,900&display=swap"
+    },
+    "body": {
+      "font_family": "IBM Plex Sans",
+      "weights": ["400", "500", "600"],
+      "classes": "font-sans text-base",
+      "import_url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    },
+    "urdu": {
+      "font_family": "Noto Nastaliq Urdu",
+      "weights": ["400"],
+      "classes": "font-urdu leading-loose text-lg",
+      "import_url": "https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap"
+    }
+  },
+  "colors": {
+    "archetype": "Spicy Operational (Organic & Earthy + Swiss Clarity)",
+    "primary": {
+      "hex": "#D94A1F",
+      "tailwind": "bg-[#D94A1F]"
+    },
+    "background": {
+      "light": "#FDFBF7",
+      "dark": "#121212"
+    },
+    "surface": {
+      "light": "#FFFFFF",
+      "dark": "#1E1E1E"
+    },
+    "text": {
+      "light": "#1A1817",
+      "dark": "#F3F1ED"
+    },
+    "status": {
+      "new_order": "bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700",
+      "confirmed": "bg-blue-100 text-blue-900 border border-blue-300 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-700",
+      "preparing": "bg-purple-100 text-purple-900 border border-purple-300 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-700",
+      "ready": "bg-orange-100 text-orange-900 border border-orange-300 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-700",
+      "out_for_delivery": "bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-900/30 dark:text-cyan-200 dark:border-cyan-700",
+      "delivered": "bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-700",
+      "rejected": "bg-red-100 text-red-900 border border-red-300 dark:bg-red-900/30 dark:text-red-200 dark:border-red-700"
+    }
+  },
+  "layouts": {
+    "dashboard_grid": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6",
+    "kanban_board": "flex flex-nowrap overflow-x-auto gap-4 pb-6 snap-x",
+    "kanban_column": "flex-shrink-0 w-80 flex flex-col gap-3",
+    "whatsapp_simulator": "w-[340px] h-[680px] rounded-[2.5rem] border-[6px] border-slate-800 bg-[#EFEAE2] overflow-hidden shadow-2xl relative"
+  },
+  "visual_enhancers": {
+    "cards": "bg-white dark:bg-[#1E1E1E] rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm",
+    "glass_header": "backdrop-blur-xl bg-white/75 dark:bg-[#121212]/75 border-b border-stone-200/50 dark:border-stone-800/50",
+    "buttons": "rounded-full font-medium transition-all active:scale-[0.98] shadow-sm",
+    "whatsapp_bubble_user": "bg-[#D9FDD3] dark:bg-[#005C4B] text-slate-900 dark:text-white rounded-lg rounded-tr-none p-2 shadow-sm text-sm",
+    "whatsapp_bubble_bot": "bg-white dark:bg-[#202C33] text-slate-900 dark:text-white rounded-lg rounded-tl-none p-2 shadow-sm text-sm"
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "new_order_card": "animate-in slide-in-from-right fade-in duration-300",
+    "skeleton_loading": "animate-pulse bg-stone-200 dark:bg-stone-800"
+  },
+  "component_instructions": {
+    "charts": "Use Recharts for metrics. Keep grid lines very subtle (10% opacity). Use the primary color (#D94A1F) for key metric lines/bars.",
+    "tables": "Dense rows. Header text small, uppercase, widely tracked (`text-xs tracking-wider uppercase text-muted-foreground`).",
+    "live_orders": "Use a horizontal scroll or multi-column flex layout. Cards must have prominent 'Time Since Order' counters (e.g., '2m ago' in bold red if > 15m). Add a badge for language preference (Urdu/English).",
+    "whatsapp_chat": "Implement a chat transcript view with classic WhatsApp colors. Background: #EFEAE2 (light). Chat bubbles should reflect WhatsApp structure. Include a distinct 'AI vs Human' control toggle.",
+    "toast_notifications": "Use Sonner (`toast.success`, `toast.error`, etc.). Trigger a specific sound (use browser Audio API) when a 'NEW_ORDER' toast fires."
+  },
+  "images": [
+    {
+      "category": "menu_item",
+      "url": "https://images.pexels.com/photos/9738983/pexels-photo-9738983.jpeg",
+      "description": "Biryani"
+    },
+    {
+      "category": "menu_item",
+      "url": "https://images.pexels.com/photos/6522616/pexels-photo-6522616.jpeg",
+      "description": "Chicken Tikka"
+    },
+    {
+      "category": "background",
+      "url": "https://images.pexels.com/photos/12203611/pexels-photo-12203611.jpeg",
+      "description": "Busy Restaurant Kitchen"
+    }
+  ],
+  "accessibility": {
+    "color_contrast": "Ensure white text is only used on dark backgrounds like the primary color #D94A1F. Use dark text for light status badges.",
+    "focus_states": "focus:ring-2 focus:ring-primary focus:ring-offset-2",
+    "motion": "Respect prefers-reduced-motion for the incoming order card animations."
+  },
+  "GENERAL_UI_UX_DESIGN_GUIDELINES": [
+    "Prioritize optical alignment over geometric alignment. For instance, icons next to text might need subtle nudges to look centered.",
+    "Never apply `transition: all`. Target specific properties like `transition-colors` or `transform`.",
+    "Do not center-align paragraphs or data tables; left-align them for readability.",
+    "Don't use generic AI-generated emojis as icons. Use Lucide-React.",
+    "Add generous spacing. Double the standard padding/margins for breathing room. Use `p-6` or `p-8` on cards instead of `p-4`.",
+    "Use glass-morphism effects carefully with backdrop filters (12-24px blur) only for sticky headers/navs.",
+    "Create depth through layered design elements with z-index hierarchy and subtle ambient shadows."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You MUST use the 'data-testid' attribute for ALL interactive elements, buttons, inputs, tabs, and key informational text (e.g., order statuses, totals).",
+    "Do NOT use HTML `<select>` or `<input type='date'>`. Use Shadcn UI primitives like DropdownMenu and Calendar.",
+    "Toasts must be implemented using `sonner`.",
+    "Ensure 'Noto Nastaliq Urdu' font is applied for Urdu text strings. You can define a `.font-urdu` utility class and wrap Urdu text in a `span` or `div`.",
+    "Avoid fully transparent backgrounds for overlays, dialogs, or dropdowns. Always use an opaque color or heavy backdrop blur.",
+    "Implement the 'WhatsApp Simulator' using standard div layouts styled to look like a phone screen (rounded corners, border, light background).",
+    "Use `lucide-react` for all icons.",
+    "Ensure no generic placeholder URLs (like via.placeholder.com) are used; use the specific images provided in this JSON.",
+    "Ensure the dashboard home cards (KPIs) use a dense bento-grid layout with clear numerical hierarchy."
+  ]
+}

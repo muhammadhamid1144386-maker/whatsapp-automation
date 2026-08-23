@@ -1,0 +1,194 @@
+@import url("https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 40 60% 98%;
+        --foreground: 20 6% 10%;
+        --card: 0 0% 100%;
+        --card-foreground: 20 6% 10%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 20 6% 10%;
+        --primary: 14 75% 49%;
+        --primary-foreground: 40 60% 98%;
+        --secondary: 36 22% 94%;
+        --secondary-foreground: 20 6% 14%;
+        --muted: 36 18% 95%;
+        --muted-foreground: 25 6% 42%;
+        --accent: 36 30% 92%;
+        --accent-foreground: 20 6% 12%;
+        --destructive: 2 72% 47%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 30 12% 89%;
+        --input: 30 12% 88%;
+        --ring: 14 75% 49%;
+        --chart-1: 14 75% 49%;
+        --chart-2: 38 92% 50%;
+        --chart-3: 160 50% 38%;
+        --chart-4: 199 70% 44%;
+        --chart-5: 268 45% 55%;
+        --radius: 0.75rem;
+    }
+
+    .dark {
+        --background: 0 0% 7%;
+        --foreground: 45 20% 94%;
+        --card: 0 0% 12%;
+        --card-foreground: 45 20% 94%;
+        --popover: 0 0% 12%;
+        --popover-foreground: 45 20% 94%;
+        --primary: 14 80% 54%;
+        --primary-foreground: 0 0% 7%;
+        --secondary: 0 0% 17%;
+        --secondary-foreground: 45 20% 94%;
+        --muted: 0 0% 16%;
+        --muted-foreground: 40 6% 64%;
+        --accent: 0 0% 20%;
+        --accent-foreground: 45 20% 94%;
+        --destructive: 2 65% 45%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 0 0% 20%;
+        --input: 0 0% 22%;
+        --ring: 14 80% 54%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        margin: 0;
+        font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+        font-feature-settings: "cv05" 1;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    .font-display {
+        font-family: "Cabinet Grotesk", "IBM Plex Sans", sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    ::selection {
+        background: hsl(14 75% 49% / 0.22);
+    }
+}
+
+@layer utilities {
+    .font-urdu {
+        font-family: "Noto Nastaliq Urdu", serif;
+        line-height: 2.1;
+    }
+
+    .font-mono-plex {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    .grain::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.35;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+    }
+
+    .glass-header {
+        backdrop-filter: blur(18px);
+        background: hsl(var(--background) / 0.78);
+    }
+
+    .card-surface {
+        @apply bg-card rounded-xl border shadow-sm;
+    }
+
+    .scroll-thin::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+    }
+
+    .scroll-thin::-webkit-scrollbar-thumb {
+        background: hsl(var(--border));
+        border-radius: 99px;
+    }
+
+    .wa-bg {
+        background-color: #efeae2;
+        background-image: radial-gradient(hsl(30 20% 78% / 0.5) 1px, transparent 1px);
+        background-size: 22px 22px;
+    }
+}
+
+@keyframes slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 hsl(14 75% 49% / 0.45);
+    }
+    70% {
+        box-shadow: 0 0 0 12px hsl(14 75% 49% / 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 hsl(14 75% 49% / 0);
+    }
+}
+
+.anim-slide-in {
+    animation: slide-in-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-rise {
+    animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-pulse-ring {
+    animation: pulse-ring 1.8s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .anim-slide-in,
+    .anim-rise,
+    .anim-pulse-ring {
+        animation: none;
+    }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}

@@ -1,0 +1,41 @@
+{
+  "summary": "First testing run for AI Restaurant Assistant (Pizza Palace WhatsApp SaaS). Wrote a comprehensive pytest suite (30 tests) covering auth, multi-tenant isolation, AI ordering end-to-end (English/Roman-Urdu), Urdu-script language detection, price-snapshot + backend-only pricing, order status lifecycle + customer WhatsApp notifications, invalid transitions, reject flow, pickup ETA (20-30), min-order guard (500 PKR), idempotency (duplicate client_message_id), menu CRUD, customers/analytics endpoints, WhatsApp connect/disconnect/QR (verified the 'stuck on connecting' fix), Google Sheets NOT-connected behaviour (400 not 500), order detail/resync, settings update, and tenant2 isolation. Also ran a Playwright smoke test on /login, /dashboard (stat cards), /orders (kanban columns), /menu, /whatsapp (persistence after reload) and public /chat simulator (AI reply confirmed). Result: 30/30 backend tests pass and all critical frontend flows render with the expected data-testids.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "services/ai.detect_language", "issue": "Common Roman-Urdu phrases like 'menu dikhayen' are classified as 'en' because the ROMAN_URDU_HINTS set doesn't include verbs like 'dikhao/dikhayen/chahiye/lena/dedo bhaijan'. Only phrases containing existing hint words (e.g. 'kya', 'hai', 'mujhe') are detected. Consider expanding the hint set OR falling back to LLM language detection for short menu-browsing utterances so Urdu-speaking customers get Roman-Urdu replies from the first message."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Consider expanding services/ai.py ROMAN_URDU_HINTS to include common menu-browsing verbs (dikhao, dikhayen, chahiye, lena, order karna) so 'menu dikhayen' returns Roman Urdu replies from the very first turn. Non-blocking - the AI still converges to the correct language after 1-2 further turns."
+  ],
+  "critical_code_review_comments": [
+    "Multi-tenant isolation is properly enforced through the tenant() dependency and every collection query includes restaurant_id - verified with tenant2 registered on the fly (Burger Hub) returning empty orders/customers/menu/conversations and 404 on a Pizza Palace order id. GOOD.",
+    "Backend-only pricing verified: order.subtotal == sum(unit_price*quantity) for every historical order; price snapshotting on order lines works.",
+    "Idempotency verified: duplicate POST with same client_message_id returns {duplicate: true} and does NOT insert a second processed_message or order.",
+    "Order status transitions are enforced: illegal jump (DELIVERED -> NEW) returns 400.",
+    "WhatsApp SimulatorProvider.connect() atomic-write fix works: after connect, GET /whatsapp/status shows 'connected' and persists after reload (both API and UI).",
+    "Google Sheets: /google-sheets/connect with no creds returns 400 (not 500); /google-sheets/sync does not crash and orders remain unaffected. Matches expected 'intentionally not connected' behaviour.",
+    "Analytics response key is 'average_order_value' (not 'avg_order_value') - kept as-is; only note is that frontend Dashboard.jsx already reads summary.average_order_value correctly.",
+    "OrderStatusHistory uses field 'new_status'/'old_status' - the /orders/{id} detail endpoint exposes both."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100% (30/30)", "frontend": "100% smoke (login, dashboard stats, orders board columns, menu, whatsapp persistence, google-sheets, chat simulator)"},
+  "test_credentials": "Restaurant owner: owner@pizzapalace.pk / Pizza123!  |  Tenant 2 created by test: tenant2@test.pk / Test1234! (Burger Hub)",
+  "seed_data_creation": "Registered a second tenant 'Burger Hub' (email tenant2@test.pk) as part of the isolation tests. The Pizza Palace demo data is idempotently seeded by the backend on startup. Multiple fresh chat conversations and one delivery order + one pickup order + one rejected order were created during the E2E tests (order numbers ORD-1004 and above).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression suite lives at /app/backend/tests/backend_test.py (pytest, 30 tests). It relies on pytest-xdist -n 2 --dist loadscope from pytest.ini and takes ~55-90s. AI turns take 3-15s so it uses timeout=60 on every request. Fresh phones are generated per test via _fresh_phone(); each order test calls _reset(phone) first. Cross-tenant tests register tenant2 idempotently. Do NOT set frontend/backend .env keys; PROTECTED. Areas NOT covered by the automated suite (would require Playwright): SSE realtime broadcast to /orders board on new order, human-handoff toggle UI, mobile 390x844 responsiveness, and the Reject dialog reason radio buttons. The suite exercises the equivalent APIs (POST /orders/{id}/status with REJECTED + reason, chat idempotency, conversation.ai_active) so the backend contract is proven; only the UI-side of these needs Playwright verification if the main agent wants full coverage.",
+  "rca_of_the_issue": "N/A - no critical bugs found. The two hot-fixes flagged in the review request (WhatsApp session stuck on 'connecting' + AI provider failure locking the conversation) both pass: WhatsApp connect returns status 'connected' and persists across reload; and the AI-error fallback code path in services/agent.py respond() gracefully emits AI_ERROR without setting ai_active=False (code inspection + none of the many AI turns during testing left any conversation stuck in handoff)."
+}
